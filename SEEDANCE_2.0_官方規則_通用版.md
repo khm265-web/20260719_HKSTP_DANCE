@@ -164,7 +164,9 @@ JOB JSON 結構說明
     "active": false,                        // true=呢個JOB會被執行；false=跳過
     "selected": ["CHAR_A", "PROP_A1", ...], // 呢個JOB用到嘅asset key（image/video/audio可以夾埋），順序=tag被resolve做Image N/Video N/Audio N嘅順序
     "ref_videos": [],                       // 額外獨立video reference URL（唔喺assets.json）
-    "mode": "REFERENCE",                    // REFERENCE=用reference image生成；FIRSTFRAME/LASTFRAME/FIRSTLAST=用assets.json入面FIRSTFRAME/LASTFRAME key
+    "mode": "REFERENCE",                    // REFERENCE=用selected reference image生成；FIRSTFRAME=淨first_frame；LASTFRAME=淨last_frame；FIRSTLAST=first+last frame一齊
+    "first_frame": "",                      // mode=FIRSTFRAME/FIRSTLAST時必填，填asset key（唔係URL）——script會用ASSETS[key]去lookup URL，⚠️唔可以放入selected array
+    "last_frame": "",                       // mode=LASTFRAME/FIRSTLAST時必填，填asset key（唔係URL），同上邏輯，⚠️唔可以放入selected array
     "ratio": "9:16",                        // 畫面比例，固定跟STYLE BLOCK
     "duration": 12,                         // 秒數，= 呢個JOB入面所有SHOT時長總和，官方硬限制4-15秒
     "resolution": "480p",                   // draft用低解析度，定稿先加高
@@ -172,8 +174,12 @@ JOB JSON 結構說明
     "audio": "",                            // ⚠️已棄用 — 原本lookup audio_descs.json，已改用SHOT-level寫法，呢個欄位保留但唔再被script讀取
     "content_filter": false                 // 內容審查開關（false=關閉審查，billing +10%）
 }
+// ⚠️ generate_audio唔係job JSON欄位——create_task()寫死generate_audio=True送去API，job.json加呢個key都冇用，唔會被讀取
 
 - selected array數量/順序要同prompt .txt入面{KEY}出現次序match，錯位會導致tag對錯圖
+- ⚠️ first_frame/last_frame獨立於selected array之外，填ASSET KEY（唔係URL，同selected array入面嘅key格式一樣），script會用ASSETS[key]自動lookup URL，唔會經{KEY} tag/prompt文字resolve
+- ⚠️ LASTFRAME mode（淨last_frame、冇first_frame）script有實作，但官方文件淨列咗「first_frame單獨」同「first+last一齊」兩種組合，未見「last_frame單獨」呢種——用呢個mode之前建議先實測confirm API會唔會接受
+- reference asset送API時嘅role值：`selected`入面嘅image/video/audio分別用`reference_image`/`reference_video`/`reference_audio`（script自訂，唔一定係官方標準field名，但係現行實際行為）
 - duration一定要等於JOB拆分邏輯計出嚟嘅累計秒數，唔可以隨便填
 - active控制單一JOB是否被pipeline執行，方便批量開關而唔洗刪JSON
 - JOB JSON冇`negative_prompt`欄位（唔存在呢個API參數），constraint要寫喺.txt prompt文字最尾
