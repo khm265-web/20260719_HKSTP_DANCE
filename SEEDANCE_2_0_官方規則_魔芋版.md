@@ -68,7 +68,14 @@ JOB JSON 結構說明（魔芋API版）
     "ratio": "9:16",                        // 畫面比例，固定依STYLE BLOCK
                                              // ⚠️【魔芋版差異】官方新增"adaptive"選項（自動判斷最合適比例），本pipeline維持固定填值不使用adaptive
     "duration": 12,                         // 秒數，= 此JOB內所有SHOT時長總和，官方硬限制4-15秒（或填-1智能指定，見上）
-    "resolution": "480p",                   // draft用低解析度，定稿再提高（魔芋API只支援480p/720p，無其他分辨率tier）
+    "resolution": "480p",                   // draft用低解析度，定稿再提高
+                                             // ⚠️【已更正 2026-08】原文寫「魔芋API只支援480p/720p」為錯誤。
+                                             //   魔芋OpenAPI spec的description只列出「480p / 720p」，但該欄位屬
+                                             //   metadata透傳(passthrough)欄位，實際由上游Seedance 2.0模型判斷，
+                                             //   上游支援：480p / 720p / 1080p / 4k（Fast/Mini版不支援1080p以上，
+                                             //   Mini傳1080p會被降級為720p並按720p計費）。
+                                             //   → 魔芋可生成4K，spec文件只是列舉不完整，並非平台限制。
+                                             //   ⚠️ 計費隨解析度大幅上升（4k約為720p的5-6倍token），draft務必用480p
     "audio": ""                             // ⚠️已棄用 — 原本lookup audio_descs.json，已改用SHOT-level寫法，此欄位保留但script不再讀取
 }
 // ⚠️【魔芋版差異】以下欄位已從JSON結構移除（Seedance_gen_BYTEPLUS.py才有，魔芋API不支援）：
@@ -107,7 +114,8 @@ REFERENCE 數量上限（魔芋官方文件確認數字）
   尺寸限制：寬高比(寬/高)須介於0.4-2.5，寬高長度須介於300-6000px
 - video：最多3條，單條時長2-15秒，全部reference video總長度合計不可超過15秒
   格式限定：僅.mp4 / .mov（魔芋官方文件已確認，.webm不支援）
-  另有：480p/720p、寬高比0.4-2.5、畫面像素409600-927408、單條≤50MB、FPS 24-60
+  另有：reference video本身須為480p/720p（此為「輸入」reference video限制，與「輸出」resolution無關）、
+  寬高比0.4-2.5、畫面像素409600-927408、單條≤50MB、FPS 24-60
 - audio：最多3條，單條時長2-15秒，全部reference audio總長度合計不可超過15秒
   格式限定：僅.wav / .mp3（魔芋官方文件已確認，.m4a/.flac不支援）
   單條≤15MB
@@ -130,6 +138,9 @@ REFERENCE 數量上限（魔芋官方文件確認數字）
   ⚠️【魔芋版差異】「換seed重生」此對策在魔芋API不適用（無seed參數），
      殘留時只能重複提交同一payload，靠模型自然隨機性重新抽卡
 - ⚠️ duration官方硬限制4-15秒（或填-1智能指定）
+- ⚠️【已更正】輸出resolution可用 480p / 720p / 1080p / 4k（原文誤寫只有480p/720p）。
+  魔芋文件的參數說明只列480p/720p，但metadata為透傳結構，1080p/4k由上游Seedance 2.0直接支援；
+  若遇到平台端校驗攔截，可實測後改回720p。查詢API回應的 `data.data.resolution` 可核對實際輸出解析度。
 - ⚠️ 單一JOB reference角色人數建議不超過4人，超過4人穩定性下降、容易出現人數錯亂／重複角色（同通用版）
 - ⚠️【魔芋版新增】平台預設會於生成影片加浮水印，須於前端「視頻創作」介面手動關閉
   （純API呼叫方式是否受此影響、或有對應參數關閉，官方文件未提及，建議實測確認）
